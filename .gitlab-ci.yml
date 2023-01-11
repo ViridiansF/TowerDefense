@@ -1,0 +1,67 @@
+stages:
+  - build
+  - deploy
+
+build-Linux:
+  stage: build
+  script:
+    - make
+  artifacts:
+    name: "build-Linux"
+    paths:
+      - tower
+      - assets/
+
+build-Windows:
+  stage: build
+  script:
+    - make CXX=x86_64-w64-mingw32-g++
+  artifacts:
+    name: "build-Windows"
+    paths:
+      - tower.exe
+      - assets/
+    
+build-Emscripten:
+  stage: build
+  script:
+    - source $EMSDK/emsdk_env.sh
+    - make CXX=em++
+  artifacts:
+    name: "build-Emscripten"
+    paths:
+      - tower.data
+      - tower.html
+      - tower.js
+      - tower.wasm
+      - assets/
+
+deploy-Linux:
+  stage: deploy
+  needs: ["build-Linux"]
+  script:
+    - mkdir -p ~/public_html/$CI_PROJECT_NAME
+    - rm -f ~/public_html/$CI_PROJECT_NAME/linux.zip
+    - zip -r linux.zip assets tower
+    - cp -r linux.zip ~/public_html/$CI_PROJECT_NAME
+
+deploy-Windows:
+  stage: deploy
+  needs: ["build-Windows"]
+  script:
+    - mkdir -p ~/public_html/$CI_PROJECT_NAME
+    - rm -f ~/public_html/$CI_PROJECT_NAME/windows.zip
+    - zip -r windows.zip assets tower.exe
+    - cp -r windows.zip ~/public_html/$CI_PROJECT_NAME
+
+deploy-Emscripten:
+  stage: deploy
+  needs: ["build-Emscripten"]
+  script:
+    - mkdir -p ~/public_html/$CI_PROJECT_NAME/emscripten
+    - rm -rf ~/public_html/$CI_PROJECT_NAME/emscripten/*
+    - cp -r tower.data ~/public_html/$CI_PROJECT_NAME/emscripten
+    - cp -r tower.html ~/public_html/$CI_PROJECT_NAME/emscripten
+    - cp -r tower.js ~/public_html/$CI_PROJECT_NAME/emscripten
+    - cp -r tower.wasm ~/public_html/$CI_PROJECT_NAME/emscripten
+    - cp -r assets ~/public_html/$CI_PROJECT_NAME/emscripten
